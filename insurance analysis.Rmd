@@ -1,6 +1,6 @@
 ---
 title: "Insurance Charges Analysis"
-author: "Team Machi"
+author: "Jinning Zhang"
 date: "`r Sys.Date()`"
 output:
   pdf_document: default
@@ -31,7 +31,7 @@ library(lmtest)
 ## 1.1 Load dataset
 
 ```{r}
-insurance <- read.csv("/Users/sammi/Desktop/MSE 609/insurance.csv")
+insurance <- read.csv("insurance.csv")
 str(insurance)
 summary(insurance)
 ```
