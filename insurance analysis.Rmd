@@ -1,0 +1,408 @@
+---
+title: "Insurance Charges Analysis"
+author: "Team Machi"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+data source: https://www.kaggle.com/datasets/mirichoi0218/insurance 
+
+```{r}
+# Load Libraries
+library(ggplot2)
+library(caret)
+library(dplyr)
+library(MASS)       # Stepwise regression
+library(glmnet)     # Lasso and Ridge regression
+library(car)        # Model diagnostics
+library(corrplot)   # Correlation heatmap
+library(interactions) # Visualization of interactions
+library(lmtest)
+```
+
+# 1.EDA
+
+## 1.1 Load dataset
+
+```{r}
+insurance <- read.csv("/Users/sammi/Desktop/MSE 609/insurance.csv")
+str(insurance)
+summary(insurance)
+```
+
+## 1.2 Visualize distribution of numeric variables
+
+```{r}
+ggplot(insurance, aes(x = age)) + geom_histogram(binwidth = 5, fill = "blue", alpha = 0.7) + theme_minimal() + ggtitle("Distribution of Age")
+
+ggplot(insurance, aes(x = bmi)) + geom_histogram(binwidth = 1, fill = "green", alpha = 0.7) + theme_minimal() + ggtitle("Distribution of BMI")
+
+ggplot(insurance, aes(x = children)) + geom_histogram(binwidth = 1, fill = "orange", alpha = 0.7) + theme_minimal() + ggtitle("Distribution of Children")
+
+ggplot(insurance, aes(x = charges)) + geom_histogram(binwidth = 1000, fill = "purple", alpha = 0.7) + theme_minimal() + ggtitle("Distribution of Charges")
+```
+
+## 1.3 Visualize distribution of categorical variables
+
+```{r}
+region_data <- insurance %>%
+  count(region) %>%
+  mutate(perc = n / sum(n) * 100, 
+         label = paste0(region, " (", round(perc, 1), "%)"))
+
+ggplot(region_data, aes(x = "", y = perc, fill = region)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y") +
+  labs(title = "Distribution of Regions", x = NULL, y = NULL) +
+  theme_void() +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5)) +
+  theme(legend.position = "none")
+
+sex_data <- insurance %>%
+  count(sex) %>%
+  mutate(perc = n / sum(n) * 100, 
+         label = paste0(sex, " (", round(perc, 1), "%)"))
+
+ggplot(sex_data, aes(x = "", y = perc, fill = sex)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y") +
+  labs(title = "Distribution of Sex", x = NULL, y = NULL) +
+  theme_void() +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5)) +
+  theme(legend.position = "none")
+
+smoker_data <- insurance %>%
+  count(smoker) %>%
+  mutate(perc = n / sum(n) * 100, 
+         label = paste0(smoker, " (", round(perc, 1), "%)"))
+
+ggplot(smoker_data, aes(x = "", y = perc, fill = smoker)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y") +
+  labs(title = "Distribution of Smoker", x = NULL, y = NULL) +
+  theme_void() +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5)) +
+  theme(legend.position = "none")
+
+```
+
+## 1.4 Correalation between varibles
+
+```{r}
+num_vars <- insurance %>% select_if(is.numeric)
+cor_matrix <- cor(num_vars)
+
+corrplot(cor_matrix, method = "color", type = "upper", addCoef.col = "black", tl.cex = 0.8)
+```
+
+```{r}
+ggplot(insurance, aes(x = age, y = charges)) + geom_point() + geom_smooth(method = "lm", color = "red") + ggtitle("Charges vs. Age")
+
+ggplot(insurance, aes(x = bmi, y = charges)) + geom_point() + geom_smooth(method = "lm", color = "blue") + ggtitle("Charges vs. BMI")
+
+ggplot(insurance, aes(x = smoker, y = charges)) + geom_boxplot(fill = "orange") + ggtitle("Charges by Smoking Status")
+
+ggplot(insurance, aes(x = sex, y = charges, fill = sex)) +
+  geom_boxplot() +
+  labs(title = "Charges by Sex", x = "Sex", y = "Charges") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggplot(insurance, aes(x = region, y = charges, fill = region)) +
+  geom_boxplot() +
+  labs(title = "Charges by Region", x = "Region", y = "Charges") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggplot(insurance, aes(x = as.factor(children), y = charges, fill = as.factor(children))) +
+  geom_boxplot() +
+  labs(title = "Charges by Number of Children", x = "Number of Children", y = "Charges") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+```{r}
+# relationship between age/children/bmi/sex and charges for smokers and non-smokers
+ggplot(insurance, aes(x = age, y = charges, color = as.factor(smoker))) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(color = "Smoker", title = "Charges by Age and Smoking Status") +
+  theme_minimal()
+
+ggplot(insurance, aes(x = bmi, y = charges, color = as.factor(smoker))) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(color = "Smoker", title = "Charges by BMI and Smoking Status") +
+  theme_minimal()
+
+ggplot(insurance, aes(x = children, y = charges, color = as.factor(smoker))) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(color = "Smoker", title = "Charges by Children and Smoking Status") +
+  theme_minimal()
+
+ggplot(insurance, aes(x=sex, y=charges, fill=smoker)) +
+  labs(color = "Smoker", title = "Charges by Sex and Smoking Status") +
+  geom_bar(stat="identity")
+```
+
+
+# 2.Models
+
+## 2.1 Feature engineering
+```{r}
+insurance_scaled <- insurance %>%
+  mutate(
+    sex = ifelse(sex == "male", 1, 0),  
+    smoker = ifelse(smoker == "yes", 1, 0),  
+    across(c(age, bmi, children, charges), scale) 
+  )
+
+
+region_dummies <- model.matrix(~ region - 1, data = insurance) %>%
+  as.data.frame()
+
+insurance_scaled <- cbind(insurance_scaled, region_dummies) %>%
+  as.data.frame() %>%
+  dplyr::select(-region)
+
+str(insurance_scaled)
+```
+
+Why?
+
+Lasso and Ridge regression methods are sensitive to the scale of predictors because they add penalties to the coefficients. Variables with larger scales (e.g., age vs. children) can disproportionately influence the model if not standardized. Standardization allows for easier comparison of coefficient magnitudes, as they all use the same scale.
+
+## 2.2  Data preparation and splitting
+
+```{r}
+# Create response and predictors
+response <- insurance_scaled$charges
+predictors <- insurance_scaled %>% dplyr::select(-charges)
+```
+
+```{r}
+# Split data into training and testing sets
+set.seed(123)
+trainIndex <- createDataPartition(response, p = 0.8, list = FALSE)
+trainX <- predictors[trainIndex, ]
+testX <- predictors[-trainIndex, ]
+trainY <- response[trainIndex]
+testY <- response[-trainIndex]
+```
+
+## 2.3 Linear Regression
+
+```{r}
+# Linear Regression Model
+lm_model <- lm(trainY ~ ., data = as.data.frame(trainX))
+lm_pred <- predict(lm_model, newdata = as.data.frame(testX))
+lm_rmse <- sqrt(mean((lm_pred - testY)^2))
+print(paste("Linear Regression RMSE:", round(lm_rmse, 3)))
+# summary(lm_model)
+```
+
+```{r}
+# Print coefficients and intercept
+lm_coef <- coef(lm_model)
+print("Linear Regression Coefficients:")
+print(lm_coef)
+
+# Calculate R-squared for the linear model
+lm_r_squared <- summary(lm_model)$r.squared
+print(paste("Linear Regression R-squared:", round(lm_r_squared, 3)))
+
+# Adjusted R-squared for completeness
+lm_adj_r_squared <- summary(lm_model)$adj.r.squared
+print(paste("Linear Regression Adjusted R-squared:", round(lm_adj_r_squared, 3)))
+```
+
+### Checking assumptions
+
+```{r}
+# Residuals and fitted values
+lm_fitted <- fitted(lm_model)  # Fitted values
+lm_residuals <- resid(lm_model)  # Residuals
+lm_std_residuals <- rstandard(lm_model)  # Standardized residuals
+```
+
+1.Residuals vs Fitted (Linearity and Homoscedasticity)
+
+```{r}
+plot(lm_fitted, lm_residuals,
+     main = "Residuals vs Fitted",
+     xlab = "Fitted Values",
+     ylab = "Residuals",
+     pch = 20, col = "blue")
+abline(h = 0, lty = 2, col = "red")
+```
+
+2. Normal Q-Q Plot (Normality of Residuals)
+
+```{r}
+qqnorm(lm_std_residuals, main = "Normal Q-Q")
+qqline(lm_std_residuals, col = "red", lty = 2)
+```
+
+3. Scale-Location Plot (Homoscedasticity)
+
+```{r}
+plot(lm_fitted, sqrt(abs(lm_std_residuals)),
+     main = "Scale-Location",
+     xlab = "Fitted Values",
+     ylab = "Standardized Residuals",
+     pch = 20, col = "blue")
+abline(h = 0, lty = 2, col = "red")
+```
+
+4. Residuals vs Leverage (Influential Points)
+
+```{r}
+plot(hatvalues(lm_model), lm_std_residuals,
+     main = "Residuals vs Leverage",
+     xlab = "Leverage",
+     ylab = "Standardized Residuals",
+     pch = 20, col = "blue")
+abline(h = c(-2, 2), col = "red", lty = 2)  # Outlier thresholds
+abline(v = 2 * mean(hatvalues(lm_model)), col = "red", lty = 2)  # High leverage threshold
+```
+
+```{r}
+dwtest(lm_model)
+```
+
+
+
+## 2.4 Lasso Regression
+
+Lasso regression performs feature selection by setting some coefficients to exactly zero, leaving only the most important features in the model.
+
+```{r}
+# Lasso Regression
+trainX <- as.matrix(trainX)
+testX <- as.matrix(testX)
+
+colnames(testX) <- colnames(trainX)
+
+lasso_model <- cv.glmnet(trainX, trainY, alpha = 1)
+lasso_pred <- predict(lasso_model, s = "lambda.min", newx = testX)
+lasso_rmse <- sqrt(mean((lasso_pred - testY)^2))
+print(paste("Lasso Regression RMSE:", round(lasso_rmse, 3)))
+```
+
+
+```{r}
+# Extract coefficients for Lasso
+lasso_coef <- coef(lasso_model, s = "lambda.min")
+print("Lasso Coefficients:")
+print(lasso_coef)
+
+# Print the best lambda for Lasso
+lasso_lambda_min <- lasso_model$lambda.min
+print(paste("Lasso Lambda (Best Penalty):", round(lasso_lambda_min, 5)))
+
+# Calculate R-squared for Lasso
+lasso_r_squared <- 1 - sum((lasso_pred - testY)^2) / sum((testY - mean(testY))^2)
+print(paste("Lasso R-squared:", round(lasso_r_squared, 3)))
+```
+
+### Feature Importance
+
+The magnitude of the coefficients reflects the importance of each feature in predicting the target variable. Larger absolute values indicate a stronger influence on the prediction.
+
+In Lasso and Ridge regression, the coefficients are regularized, which helps to shrink less important features toward zero. Features with larger coefficients are considered more important.
+
+```{r}
+lasso_coef <- coef(lasso_model, s = "lambda.min")  
+lasso_coef_df <- data.frame(
+  Feature = rownames(lasso_coef),
+  Coefficient = as.vector(lasso_coef)
+)
+lasso_coef_df <- lasso_coef_df[-1, ]  
+lasso_coef_df$Importance <- abs(lasso_coef_df$Coefficient) 
+
+lasso_coef_df <- lasso_coef_df[order(-lasso_coef_df$Importance), ]
+
+print("Lasso Feature Importance:")
+print(lasso_coef_df)
+```
+
+## 2.5 Ridge Regression
+
+Ridge regression shrinks coefficients but keeps all features in the model, with the magnitude of the coefficients indicating their relative importance.
+
+```{r}
+# Ridge Regression
+ridge_model <- cv.glmnet(trainX, trainY, alpha = 0)
+ridge_pred <- predict(ridge_model, s = "lambda.min", newx = testX)
+ridge_rmse <- sqrt(mean((ridge_pred - testY)^2))
+```
+
+```{r}
+# Extract coefficients for Ridge
+ridge_coef <- coef(ridge_model, s = "lambda.min")
+print("Ridge Coefficients:")
+print(ridge_coef)
+
+# Print the best lambda for Ridge
+ridge_lambda_min <- ridge_model$lambda.min
+print(paste("Ridge Lambda (Best Penalty):", round(ridge_lambda_min, 5)))
+
+# Calculate R-squared for Ridge
+ridge_r_squared <- 1 - sum((ridge_pred - testY)^2) / sum((testY - mean(testY))^2)
+print(paste("Ridge R-squared:", round(ridge_r_squared, 3)))
+```
+
+### Feature Importance
+```{r}
+ridge_coef <- coef(ridge_model, s = "lambda.min")  
+ridge_coef_df <- data.frame(
+  Feature = rownames(ridge_coef),
+  Coefficient = as.vector(ridge_coef)
+)
+ridge_coef_df <- ridge_coef_df[-1, ] 
+ridge_coef_df$Importance <- abs(ridge_coef_df$Coefficient) 
+
+ridge_coef_df <- ridge_coef_df[order(-ridge_coef_df$Importance), ]
+
+print("Ridge Feature Importance:")
+print(ridge_coef_df)
+```
+
+## 2.6 Compare model performance
+
+```{r}
+model_performance <- data.frame(
+  Model = c("Linear Regression", "Lasso Regression", "Ridge Regression"),
+  RMSE = c(lm_rmse, lasso_rmse, ridge_rmse)
+)
+model_performance
+```
+
+# 3.Hypothesis Test
+
+Conduct a hypothesis test to check the effect of smoking on insurance charges.
+
+## 3.1 ANOVA
+
+```{r}
+linear_model <- lm(charges ~ smoker, data = insurance)
+summary(lm(charges ~ smoker, data = insurance))
+anova(linear_model)
+```
+
+## 3.2 t test
+
+```{r}
+t_test_result <- t.test(charges ~ smoker, data = insurance)
+t_test_result
+```
+
+
+
