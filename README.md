@@ -1,4 +1,48 @@
-## Introduction
-With the commodification of health care services, access to health insurance becomes essential for citizens to be protected from unexpected financial loss due to illnesses and injuries, especially for low-income populations. While the Canadian government provides health plans to cover citizens’ basic medical services, many people still need private insurance to cover additional healthcare needs. In contrast, countries like the United States, which lacks universal healthcare, rely entirely on private insurance markets. Insurance companies calculate rates for individuals by assessing risks based on factors such as age, sex, and lifestyle. Among these, the habit of smoking is considered an important factor as it is associated with many negative health consequences – people who smoke are about 25 times more likely than non-smokers to develop lung cancer(National Center for Chronic Disease Prevention and Health Promotion (US) Office on Smoking and Health, 2014), and smoking increases the risk of coronary heart disease and stroke by 2 to 4 times (CDC, 2024). Research also shows that smoking leads to excess medical care where the medical costs for male smokers are 11% more than non-smokers (Izumi et al., 2001). Insurance companies rely on these risk factors to assess the potential medical expenses they need to cover and determine the insurance prices for beneficiaries.
+# Health Insurance Charge Analysis
 
-Given these considerations, we want to investigate how smoking impacts the medical charges covered by insurance companies and explore other factors that might contribute to the variation of the amount of charges paid by insurance. This will provide valuable insights into how lifestyle choices, particularly smoking, influence the cost of health insurance and the extent of coverage. This information can help individuals make informed decisions about their health behaviors and financial planning. This study can also inform policymakers and insurance providers about the equity and efficiency of insurance pricing models. 
+## Project Overview
+This project investigates how smoking impacts medical charges covered by insurance companies and explores other factors contributing to variations in medical costs. The study leverages statistical modeling and regression techniques to analyze the influence of demographic and health-related factors.
+
+## Dataset
+The dataset used in this study is the **Medical Cost Personal Datasets** from Kaggle, originally published by Miri Choi in 2017. It contains information on insurance beneficiaries, including:
+- Age
+- Sex
+- BMI (Body Mass Index)
+- Number of children
+- Smoking status
+- Residential region
+- Medical charges
+
+## Research Questions
+### Primary Question:
+- How does smoking status affect a person’s medical expenses?
+
+### Exploratory Question:
+- What are the top three leading factors influencing medical costs billed by insurance?
+
+## Methodology
+1. **Data Preprocessing**
+   - Standardization of continuous variables
+   - Encoding categorical variables
+   - Splitting dataset into training (80%) and testing (20%) sets
+
+2. **Statistical Models Used**
+   - **Linear Regression**: Establishes baseline relationships between predictors and medical charges.
+   - **Ridge Regression**: Regularization to reduce variance and address multicollinearity.
+   - **Lasso Regression**: Feature selection by eliminating less important variables.
+
+3. **Model Evaluation**
+   - R-squared and Adjusted R-squared
+   - Root Mean Squared Error (RMSE)
+   - Hypothesis testing (ANOVA, t-tests)
+
+## Key Findings
+- **Smoking is the most significant predictor of higher medical charges.**
+- **Age and BMI also have strong positive relationships with medical costs.**
+- **Sex and residential region have minimal impact on medical charges.**
+- **Ridge and Lasso regression did not significantly outperform linear regression, suggesting limited multicollinearity.**
+
+## Limitations & Future Research
+- The models assume a **linear relationship**, which may not fully capture complex interactions between variables.
+- Future studies could explore **non-linear models** (e.g., neural networks) for better predictive performance.
+- The dataset is limited to a specific population and may not generalize to other healthcare systems.
