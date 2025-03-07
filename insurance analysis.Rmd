@@ -1,6 +1,5 @@
 ---
 title: "Insurance Charges Analysis"
-author: "Jinning Zhang"
 date: "`r Sys.Date()`"
 output:
   pdf_document: default
