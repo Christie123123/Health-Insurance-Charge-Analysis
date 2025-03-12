@@ -1,7 +1,7 @@
 # Health Insurance Charge Analysis
 
 ## Project Overview
-This project investigates how smoking impacts medical charges covered by insurance companies and explores other factors contributing to variations in medical costs. The study leverages statistical modeling and regression techniques to analyze the influence of demographic and health-related factors.1
+This project investigates how smoking impacts medical charges covered by insurance companies and explores other factors contributing to variations in medical costs. The study leverages statistical modeling and regression techniques to analyze the influence of demographic and health-related factors.
 
 ## Dataset
 The dataset used in this study is the **Medical Cost Personal Datasets** from Kaggle, originally published by Miri Choi in 2017. It contains information on insurance beneficiaries, including:
