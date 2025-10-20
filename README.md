@@ -1,6 +1,8 @@
 # Health Insurance Charge Analysis
 
 ## Project Overview
+This project is our group project for MSE609.
+
 This project investigates how smoking impacts medical charges covered by insurance companies and explores other factors contributing to variations in medical costs. The study leverages statistical modeling and regression techniques to analyze the influence of demographic and health-related factors.
 
 ## Dataset
